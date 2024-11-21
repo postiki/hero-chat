@@ -22,7 +22,7 @@ This is a simple chat application built using React and Effector. The applicatio
    git clone https://github.com/yourusername/chat-application.git
    cd chat-application
    
-2. **Install dependensies**
+2. **Install dependencies**
     ```bash
    npm i
    
