@@ -1,26 +1,57 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, {useEffect} from 'react';
+import {useUnit} from "effector-react";
+import Login from "./components/Login/Login";
+import Register from "./components/Register/Register";
+import {$modal, showModal} from "./entity/modals";
+import {$authed, validateToken} from "./entity/auth";
+import modalTypes from "./entity/modals/modalTypes";
+import Chat from "./components/Chat/Chat";
+import Modal from "./components/ui/modal/Modal";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
-}
+const App: React.FC = () => {
+    const modal = useUnit($modal);
+    const auth = useUnit($authed);
+
+    useEffect(() => {
+        if (!auth) {
+            validateToken()
+        }
+    }, [auth]);
+
+    if (modal === modalTypes.login) {
+        return <Login/>
+    }
+    if (modal === modalTypes.register) {
+        return <Register/>
+    }
+
+    if (!auth) {
+        return (
+            <Modal>
+                <h1 className="text-center text-2xl font-bold mt-4">Auth App</h1>
+                <div className="flex flex-col items-center gap-2 mt-4">
+                    <button
+                        onClick={() => showModal(modalTypes.login)}
+                        className="bg-blue-500 text-white px-4 py-2 rounded w-40"
+                    >
+                        Open Login
+                    </button>
+                    <button
+                        onClick={() => showModal(modalTypes.register)}
+                        className="bg-blue-500 text-white px-4 py-2 rounded w-40"
+                    >
+                        Open Register
+                    </button>
+                </div>
+            </Modal>
+        )
+    }
+
+    return (
+        <div className="App">
+            {modal === modalTypes.chat && <Chat/>}
+        </div>
+    );
+};
 
 export default App;
