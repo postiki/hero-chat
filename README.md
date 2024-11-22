@@ -28,7 +28,7 @@ This is a simple chat application built using React and Effector. The applicatio
    
 3. **Run script**
     ```bash
-   npm run dev
+   npm run start
 
 4. **Go to login page**
 
