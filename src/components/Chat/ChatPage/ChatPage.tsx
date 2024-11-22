@@ -1,6 +1,6 @@
-import React, {useEffect, useMemo, useRef, useState} from "react";
-import {useUnit} from "effector-react";
-import {$currentChatMessages, fetchOldMessages, sendMessage} from "../../../entity/chat";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useUnit } from "effector-react";
+import { $currentChatMessages, fetchOldMessages, sendMessage } from "../../../entity/chat";
 
 const ChatPage: React.FC = () => {
     const messages = useUnit($currentChatMessages);
@@ -23,10 +23,6 @@ const ChatPage: React.FC = () => {
             inputRef.current.style.height = 'auto';
             inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
         }
-
-        if (messagesContainerRef.current) {
-            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
     }, [message]);
 
     const handleSend = () => {
@@ -34,15 +30,21 @@ const ChatPage: React.FC = () => {
             sendMessage(message);
             setMessage("");
             if (inputRef.current) {
-                inputRef.current.style.height = 'auto'; // Reset the height after sending
+                inputRef.current.style.height = 'auto';
             }
+
+            setTimeout(() => {
+                if (messagesEndRef.current) {
+                    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 100);
         }
     };
 
     useEffect(() => {
         const handleKeyPress = (e: KeyboardEvent) => {
             if (e.key === 'Enter' && !e.shiftKey && message.length > 0) {
-                e.preventDefault(); // Prevent the default Enter behavior
+                e.preventDefault();
                 handleSend();
             }
         };
@@ -51,54 +53,51 @@ const ChatPage: React.FC = () => {
         return () => {
             window.removeEventListener('keydown', handleKeyPress);
         };
-    }, [handleSend, message]);
+    }, [message]);
 
     useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({behavior: 'smooth'});
-        }
+        setTimeout(() => {
+            if (messagesEndRef.current) {
+                messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 100);
     }, [messages]);
 
-    useEffect(() => {
-        const handleScroll = () => {
-            if (messagesContainerRef.current) {
-                if (messagesContainerRef.current.scrollTop === 0) {
-                    console.log('update')
-                    fetchOldMessages()
-                }
-            }
-        };
-
-        const container = messagesContainerRef.current;
-        if (container) {
-            container.addEventListener('scroll', handleScroll);
-        }
-
-        return () => {
-            if (container) {
-                container.removeEventListener('scroll', handleScroll);
-            }
-        };
-    }, []);
-
-    const [isSafari, setIsSafari] = useState(false)
+    const [isSafari, setIsSafari] = useState(false);
     useEffect(() => {
         const isMobileSafari = () => {
             const userAgent = window.navigator.userAgent;
             return /iP(ad|hone|od).+Version\/[\d.]+.*Safari/.test(userAgent);
         };
-        const isSafari = isMobileSafari()
+        const isSafari = isMobileSafari();
         if (isSafari) {
-            setIsSafari(true)
+            setIsSafari(true);
         }
-    }, [])
+    }, []);
+
+    useEffect(() => {
+        const handleTouchStart = () => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        const container = messagesContainerRef.current;
+        if (container) {
+            container.addEventListener('touchstart', handleTouchStart);
+        }
+
+        return () => {
+            if (container) {
+                container.removeEventListener('touchstart', handleTouchStart);
+            }
+        };
+    }, []);
 
     return (
         <div className="flex flex-col h-full">
             <div
                 ref={messagesContainerRef}
                 className="flex-1 overflow-y-auto p-4"
-                style={{maxHeight: `calc(100vh - ${inputContainerRef.current?.offsetHeight || 0}px - 1rem - ${isSafari ? 83 : 0 }px)`}}
+                style={{ maxHeight: `calc(100vh - ${inputContainerRef.current?.offsetHeight || 0}px - 1rem - ${isSafari ? 83 : 0}px)` }}
             >
                 {sortedMessages.map((message) => (
                     <div
@@ -107,7 +106,7 @@ const ChatPage: React.FC = () => {
                     >
                         <div
                             className={`p-2 rounded-lg ${message.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'}`}
-                            style={{wordWrap: 'break-word', maxWidth: '80%'}}
+                            style={{ wordWrap: 'break-word', maxWidth: '80%' }}
                         >
                             {message.text}
                         </div>
@@ -121,7 +120,7 @@ const ChatPage: React.FC = () => {
                         </div>
                     </div>
                 ))}
-                <div ref={messagesEndRef}/>
+                <div ref={messagesEndRef} />
             </div>
             <div className="p-4 border-t bg-white sticky bottom-0" ref={inputContainerRef}>
                 <textarea
