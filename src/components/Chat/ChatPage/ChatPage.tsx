@@ -129,14 +129,11 @@ const ChatPage: React.FC<IChatPage> = ({chatId}) => {
                             <button
                                 onClick={() => handleSpeak(message.text, message.id)}
                                 className={`ml-2 text-xs ${
-                                    loadingMessageId ? 'text-gray-400' :
+                                    loadingMessageId === message.id ? 'text-gray-400 cursor-not-allowed' : 
                                         playingMessageId === message.id ? 'text-green-500' :
                                             'text-blue-500'
                                 }`}
-                                disabled={
-                                    Boolean(loadingMessageId) ||
-                                    Boolean(playingMessageId)
-                                }
+                                disabled={Boolean(loadingMessageId)}
                             >
                                 {loadingMessageId === message.id ? 'Loading...' :
                                     playingMessageId === message.id ? 'Playing...' :
@@ -145,7 +142,7 @@ const ChatPage: React.FC<IChatPage> = ({chatId}) => {
                         </div>
                     </div>
                 ))}
-                <div ref={messagesEndRef} />
+                <div ref={messagesEndRef}/>
             </div>
             <div className="p-4 border-t bg-white sticky bottom-0" ref={inputContainerRef}>
                 <textarea
