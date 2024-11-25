@@ -100,6 +100,7 @@ const ChatPage: React.FC<IChatPage> = ({chatId}) => {
 
     const { loadingMessageId, playingMessageId, handleSpeak } = useTextToSpeech();
 
+
     return (
         <div className="flex flex-col h-full">
             <div
@@ -128,11 +129,14 @@ const ChatPage: React.FC<IChatPage> = ({chatId}) => {
                             <button
                                 onClick={() => handleSpeak(message.text, message.id)}
                                 className={`ml-2 text-xs ${
-                                    loadingMessageId === message.id ? 'text-gray-400' :
+                                    loadingMessageId ? 'text-gray-400' :
                                         playingMessageId === message.id ? 'text-green-500' :
                                             'text-blue-500'
                                 }`}
-                                disabled={loadingMessageId === message.id}
+                                disabled={
+                                    Boolean(loadingMessageId) ||
+                                    Boolean(playingMessageId)
+                                }
                             >
                                 {loadingMessageId === message.id ? 'Loading...' :
                                     playingMessageId === message.id ? 'Playing...' :

@@ -13,10 +13,9 @@ export const useTextToSpeech = (): UseTextToSpeechReturn => {
     const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
     const handleSpeak = useCallback(async (text: string, messageId: string) => {
-        if (currentAudio) {
-            currentAudio.pause();
-            currentAudio.currentTime = 0;
-            setPlayingMessageId(null);
+        // Prevent starting a new speech if one is already loading or playing
+        if (loadingMessageId || playingMessageId) {
+            return;
         }
 
         setLoadingMessageId(messageId);
@@ -51,7 +50,7 @@ export const useTextToSpeech = (): UseTextToSpeechReturn => {
         } finally {
             setLoadingMessageId(null);
         }
-    }, [currentAudio]);
+    }, [loadingMessageId, playingMessageId]);
 
     return { loadingMessageId, playingMessageId, handleSpeak };
 };
