@@ -8,20 +8,25 @@ export interface IAuthParams {
     password: string;
 }
 
+export interface IOauthParams {
+    type: 'google'
+}
+
 export const register = createEvent<IAuthParams>()
 export const goToLogin = createEffect(() => showModal(modalTypes.login))
 export const goToChat = createEffect(() => showModal(modalTypes.chat))
 export const goToAuth = createEffect(() => showModal(''))
-export const auth = createEvent<IAuthParams>()
+export const auth = createEvent<IAuthParams | IOauthParams>()
 
 export const logout = createEvent();
 export const dropToken = createEffect(() => localStorage.removeItem('authToken'));
 sample({
     clock: logout,
-    target: [goToLogin, dropToken],
+    target: [goToAuth, dropToken],
 })
 
 export const authenticate = createEvent()
+export const authenticateOauth = createEvent<string>()
 export const $authed = createStore(false)
     .on(authenticate, (_, payload) => payload)
     .reset(logout);
@@ -34,23 +39,27 @@ export const $token = createStore<string | null>(null)
 
 
 export const authFx = createEffect({
-    handler: async (payload: IAuthParams) => {
+    handler: async (payload: IAuthParams | IOauthParams) => {
         return new Promise<string>((resolve, reject) => {
             setTimeout(() => {
-                // here we will auth user by login and pass, then got token
-
-                if (payload.login === "test" && payload.password === "password") {
+                if ("type" in payload) {
                     const token = "mocked-token";
                     localStorage.setItem('authToken', token);
                     resolve(token);
-                } else {
-                    reject(new Error("Unauthorized"));
+                } else if("login" in payload) {
+                    if (payload.login === "test" && payload.password === "password") {
+                        const token = "mocked-token";
+                        localStorage.setItem('authToken', token);
+                        resolve(token);
+                    } else {
+                        reject(new Error("Unauthorized"));
+                    }
                 }
+                // here we will auth user by login and pass, then got token
             }, 500);
         });
     },
 });
-
 export const registerFx = createEffect({
     handler: async (payload: IAuthParams) => {
         return new Promise<boolean>((resolve) => {
@@ -87,13 +96,19 @@ sample({
     target: [setToken, authenticate, goToChat, fetchChatsFx]
 })
 
+
+sample({
+    clock: authenticateOauth,
+    target: [authenticate, goToChat, fetchChatsFx],
+})
+
 export const validateToken = createEvent()
 export const validateTokenFx = attach({
     source: {
         token: $token,
     },
     async effect({token}) {
-        // here we will validate token life cicle
+        // here we will validate token life cycle
         const tokenRaw = localStorage.getItem("authToken")
         return new Promise<boolean>((resolve) => {
             setTimeout(() => {

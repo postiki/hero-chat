@@ -26,10 +26,16 @@ This is a simple chat application built using React and Effector. The applicatio
     ```bash
    npm i
    
-3. **Run script**
+3. **Add env variables**
+   ```bash
+   REACT_APP_OPENAI_KEY= it needs to have a conversation with chatgpt
+   REACT_APP_CLIENT_ID= it needs to allow authentication by google
+   REACT_APP_HOST_URL= it need to have correct path of images
+   
+4. **Run script**
     ```bash
    npm run start
 
-4. **Go to login page**
+5. **Go to login page**
 
-5. **Auth by "test" and "password" as credentials**:  These credentials are used to mock the authentication process and grant access to the chat functionalities. Once logged in, you can view and interact with the chat features.
+6. **Auth by "test" and "password" as credentials or google auth**:  These credentials are used to mock the authentication process and grant access to the chat functionalities. Once logged in, you can view and interact with the chat features.

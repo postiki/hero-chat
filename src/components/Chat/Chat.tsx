@@ -20,13 +20,20 @@ const Chat: React.FC = () => {
 
 
     if (currentChat) {
-        return <Modal onClose={() => setCurrentChat(null)}><ChatPage/></Modal>;
+        return <Modal onClose={() => setCurrentChat(null)}><ChatPage chatId={currentChat}/></Modal>;
     }
 
     return (
-        <Modal onClose={logout}>
-            <div className="bg-blue-500 text-white p-4 text-center font-bold sticky top-0 z-10">
-                Chats
+        <Modal>
+            <div
+                className="bg-blue-500 text-white p-4 text-center font-bold sticky top-0 z-10 flex justify-between items-center">
+                <span>Chats</span>
+                <button
+                    onClick={() => logout()}
+                    className="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded"
+                >
+                    Logout
+                </button>
             </div>
             <div className="overflow-y-auto max-h-[calc(100vh)]">
                 {sortedChats

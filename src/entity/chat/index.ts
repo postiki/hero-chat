@@ -1,12 +1,13 @@
-import {attach, createEffect, createEvent, createStore, sample} from 'effector';
+import {attach, combine, createEffect, createEvent, createStore, sample} from 'effector';
+import {OpenAI} from 'openai';
 
 const generateMockChats = (count: number): IChat[] => {
     return Array.from({length: count}, (_, index) => ({
         id: `${index + 1}`,
         name: `Bot ${index + 1}`,
         avatar: `/bot${index + 1}.png`,
-        lastMessage: `This is the last message from Bot ${index + 1}`,
-        timestamp: (new Date().getTime() + 60 * 1000 * index).toString(),
+        lastMessage: `chat created ${index + 1}`,
+        timestamp: (new Date().getTime() - 60 * 1000 * index).toString(),
     }));
 };
 
@@ -48,7 +49,21 @@ interface IMessage {
     timestamp: string;
 }
 
-export const $currentChatMessages = createStore<IMessage[]>([]);
+interface IMessageStore {
+    [key: string]: IMessage[];
+}
+
+export const $messagesStore = createStore<IMessageStore>({})
+export const $currentChatMessages = combine(
+    $currentChat,
+    $messagesStore,
+    (currentChat, messagesStore) => {
+        if (!currentChat) {
+            return [];
+        }
+        return messagesStore[currentChat] || [];
+    }
+);
 const generateMockMessages = (count: number, startingTimestamp: number, startingIndex: number = 0): IMessage[] => {
     return Array.from({length: count}, (_, index) => ({
         id: `${startingIndex + index + 1}`,
@@ -64,7 +79,7 @@ export const fetchCurrentMessages = attach({
     async effect({currentChat}, payload) {
         return new Promise<IMessage[]>((resolve) => {
             setTimeout(() => {
-                resolve(generateMockMessages(20, Date.now()));
+                resolve([])
             }, 500);
         });
     }
@@ -75,7 +90,7 @@ sample({
     target: fetchCurrentMessages
 })
 
-$currentChatMessages.on(fetchCurrentMessages.doneData, (_, messages) => messages)
+// $currentChatMessages.on(fetchCurrentMessages.doneData, (_, messages) => messages)
 
 export const sendMessage = createEvent<string>();
 export const sendMessageFx = attach({
@@ -83,14 +98,60 @@ export const sendMessageFx = attach({
         currentChat: $currentChat
     },
     async effect({currentChat}, payload) {
-        //call api with current chat and payload
-        return payload;
+        return new Promise((resolve) => {
+            resolve({payload, currentChat})
+        })
     }
 })
-
+export const updateMessageStore = createEvent<{ chatId: string, message: string }>()
 sample({
     clock: sendMessage,
-    target: sendMessageFx,
+    source: {
+        currentChat: $currentChat
+    },
+    fn: ({currentChat}, payload) => {
+        return {message: payload, chatId: currentChat};
+    },
+    target: [sendMessageFx, updateMessageStore],
+})
+
+
+export const mockedResponseForMessage = attach({
+    source: {
+        messages: $currentChatMessages,
+        chatId: $currentChat,
+    },
+    async effect({messages, chatId}) {
+        if(!chatId){
+            throw new Error('No chatId provided');
+        }
+        const lastUserMessage = messages[messages.length - 1];
+        try {
+            const openai = new OpenAI({apiKey: process.env.REACT_APP_OPENAI_KEY, dangerouslyAllowBrowser: true});
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                    {
+                        role: "user",
+                        content: lastUserMessage.text
+                    }
+                ],
+            });
+
+            if(!completion.choices[0].message.content){
+                throw new Error('no message content provided');
+            }
+
+            return {message: completion.choices[0].message.content, chatId: chatId}
+        } catch (error) {
+            console.log(error)
+            return {message: '', chatId: chatId}
+        }
+    }
+})
+sample({
+    clock: updateMessageStore,
+    target: mockedResponseForMessage
 })
 
 export const fetchOldMessages = createEvent()
@@ -119,14 +180,79 @@ sample({
     target: fetchOldMessagesFx
 })
 
-$currentChatMessages
-    .on(sendMessage, (state, message) => {
-        return [...state, {
-            id: (state.length + 1).toString(),
-            sender: 'user',
-            text: message,
-            timestamp: (new Date().getTime()).toString(),
-        }]
-    }).on(fetchOldMessagesFx.doneData, (state, messages) => {
-    return [...state, ...messages]
+$messagesStore
+    .on(updateMessageStore, (state, payload) => {
+        // console.log('$messagesStore on updateMessageStore', payload, state)
+        if (!payload.chatId) {
+            console.error('chatId is undefined or null');
+            return state;
+        }
+
+        const currentMessages = state[payload.chatId] || [];
+
+        const newState: IMessageStore = {
+            ...state,
+            [payload.chatId]: [
+                ...currentMessages,
+                {
+                    id: (currentMessages.length + 1).toString(),
+                    sender: 'user',
+                    text: payload.message,
+                    timestamp: (new Date().getTime()).toString()
+                }
+            ]
+        };
+
+        return newState;
+    })
+    .on(mockedResponseForMessage.doneData, (state, payload) => {
+        // console.log('$messagesStore on mockedResponseForMessage', payload, state)
+        if (!payload || !payload.chatId || !payload.message) {
+            console.error('chatId is undefined or null');
+            return state;
+        }
+
+        const currentMessages = state[payload.chatId] || [];
+
+        const newState: IMessageStore = {
+            ...state,
+            [payload.chatId]: [
+                ...currentMessages,
+                {
+                    id: (currentMessages.length + 1).toString(),
+                    sender: 'bot',
+                    text: payload.message,
+                    timestamp: (new Date().getTime()).toString()
+                }
+            ]
+        };
+
+        return newState;
+    })
+// .on(fetchOldMessagesFx.doneData, (state, messages) => {
+// return [...state, ...messages]
+// })
+
+const updateChatLastMessage = createEvent<{chatId: string, message: string}>()
+sample({
+    clock: [updateMessageStore],
+    target: updateChatLastMessage,
+})
+sample({
+    clock: mockedResponseForMessage.doneData,
+    filter: (payload) => payload.message.length > 0,
+    target: updateChatLastMessage,
+})
+$chats.on(updateChatLastMessage, (state, payload)=>{
+    const newState = state.map(chat => {
+        if (chat.id === payload.chatId) {
+            return {
+                ...chat,
+                lastMessage: payload.message,
+                timestamp: Date.now().toString()
+            };
+        }
+        return chat;
+    });
+    return newState
 })

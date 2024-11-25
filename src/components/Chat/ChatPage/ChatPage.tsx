@@ -1,9 +1,15 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useUnit } from "effector-react";
-import { $currentChatMessages, fetchOldMessages, sendMessage } from "../../../entity/chat";
+import React, {useEffect, useMemo, useRef, useState} from "react";
+import {useUnit} from "effector-react";
+import {$messagesStore, sendMessage} from "../../../entity/chat";
+import {useTextToSpeech} from "../../../hooks/useTextToSpeech";
 
-const ChatPage: React.FC = () => {
-    const messages = useUnit($currentChatMessages);
+interface IChatPage {
+    chatId: string
+}
+
+const ChatPage: React.FC<IChatPage> = ({chatId}) => {
+    const allMessages = useUnit($messagesStore);
+    const messages = allMessages[chatId] || []
     const [message, setMessage] = useState("");
     const sortedMessages = useMemo(() => {
         return messages.sort((a, b) => {
@@ -35,7 +41,7 @@ const ChatPage: React.FC = () => {
 
             setTimeout(() => {
                 if (messagesEndRef.current) {
-                    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                    messagesEndRef.current.scrollIntoView({behavior: 'smooth'});
                 }
             }, 100);
         }
@@ -58,7 +64,7 @@ const ChatPage: React.FC = () => {
     useEffect(() => {
         setTimeout(() => {
             if (messagesEndRef.current) {
-                messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                messagesEndRef.current.scrollIntoView({behavior: 'smooth'});
             }
         }, 100);
     }, [messages]);
@@ -77,7 +83,7 @@ const ChatPage: React.FC = () => {
 
     useEffect(() => {
         const handleTouchStart = () => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
         };
 
         const container = messagesContainerRef.current;
@@ -91,6 +97,8 @@ const ChatPage: React.FC = () => {
             }
         };
     }, []);
+
+    const { loadingMessageId, playingMessageId, handleSpeak } = useTextToSpeech();
 
     return (
         <div className="flex flex-col h-full">
@@ -117,6 +125,19 @@ const ChatPage: React.FC = () => {
                                     minute: '2-digit',
                                 })}
                             </span>
+                            <button
+                                onClick={() => handleSpeak(message.text, message.id)}
+                                className={`ml-2 text-xs ${
+                                    loadingMessageId === message.id ? 'text-gray-400' :
+                                        playingMessageId === message.id ? 'text-green-500' :
+                                            'text-blue-500'
+                                }`}
+                                disabled={loadingMessageId === message.id}
+                            >
+                                {loadingMessageId === message.id ? 'Loading...' :
+                                    playingMessageId === message.id ? 'Playing...' :
+                                        'Speak'}
+                            </button>
                         </div>
                     </div>
                 ))}

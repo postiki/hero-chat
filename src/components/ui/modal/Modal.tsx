@@ -13,7 +13,7 @@ const Modal: React.FC<ModalProps> = ({onClose, handleBack, children}) => {
                 {handleBack && (
                     <button
                         onClick={handleBack}
-                        className="absolute top-2 left-2 text-gray-600 text-2xl"
+                        className="absolute top-2 left-8 text-gray-600 text-2xl"
                     >
                         &larr;
                     </button>
@@ -21,7 +21,8 @@ const Modal: React.FC<ModalProps> = ({onClose, handleBack, children}) => {
                 {onClose && (
                     <button
                         onClick={onClose}
-                        className="absolute top-2 right-2 text-gray-600 text-2xl"
+                        className="absolute top-2 right-2 text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded flex justify-center items-center"
+                        style={{width: '40px', height: '40px'}}
                     >
                         &times;
                     </button>
@@ -31,7 +32,6 @@ const Modal: React.FC<ModalProps> = ({onClose, handleBack, children}) => {
                 </div>
             </div>
         </div>
-
     );
 };
 
